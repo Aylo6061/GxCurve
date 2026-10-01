@@ -1,0 +1,13 @@
+{
+	"autodeskProduct": "Fusion360",
+	"type": "addin",
+	"id": "7c1f9a52-5b8e-4d0f-9a4e-2d6b3c0e8f11",
+	"author": "",
+	"description": {
+		"": "GX Curve: G2/G3/G4 continuous corner blends and freeform control-point splines, with curvature combs."
+	},
+	"version": "0.1.0",
+	"runOnStartup": false,
+	"supportedOS": "windows|mac",
+	"editEnabled": true
+}
