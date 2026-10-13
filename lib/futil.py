@@ -100,6 +100,16 @@ def describe_input(inp):
     return t
 
 
+def refresh_viewport():
+    """Redraw the viewport, if there is one (there isn't while documents open, close or switch)."""
+    try:
+        vp = app.activeViewport
+        if vp:
+            vp.refresh()
+    except Exception:
+        pass
+
+
 def handle_error(where, show=True):
     msg = "GX_tool error in %s:\n%s" % (where, traceback.format_exc())
     log(msg)
@@ -135,13 +145,13 @@ def clear_handlers():
     _handlers.clear()
 
 
-def create_button(cmd_id, name, tooltip, resources, on_created, after_id=""):
+def create_button(cmd_id, name, tooltip, resources, on_created, after_id="", panel_id=PANEL_ID):
     cmd_def = ui.commandDefinitions.itemById(cmd_id)
     if cmd_def:
         cmd_def.deleteMe()
     cmd_def = ui.commandDefinitions.addButtonDefinition(cmd_id, name, tooltip, resources)
     add_handler(cmd_def.commandCreated, on_created, adsk.core.CommandCreatedEventHandler)
-    panel = ui.workspaces.itemById(WORKSPACE_ID).toolbarPanels.itemById(PANEL_ID)
+    panel = ui.workspaces.itemById(WORKSPACE_ID).toolbarPanels.itemById(panel_id)
     ctrl = panel.controls.itemById(cmd_id)
     if ctrl:
         ctrl.deleteMe()
@@ -150,9 +160,9 @@ def create_button(cmd_id, name, tooltip, resources, on_created, after_id=""):
     return cmd_def
 
 
-def delete_button(cmd_id):
+def delete_button(cmd_id, panel_id=PANEL_ID):
     ws = ui.workspaces.itemById(WORKSPACE_ID)
-    panel = ws.toolbarPanels.itemById(PANEL_ID) if ws else None
+    panel = ws.toolbarPanels.itemById(panel_id) if ws else None
     ctrl = panel.controls.itemById(cmd_id) if panel else None
     if ctrl:
         ctrl.deleteMe()

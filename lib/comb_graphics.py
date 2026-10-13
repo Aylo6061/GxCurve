@@ -3,6 +3,7 @@
 import adsk.core
 import adsk.fusion
 
+from . import futil
 from .futil import app, debug, log
 
 _groups = {}  # key -> CustomGraphicsGroup
@@ -32,6 +33,45 @@ def clear_all():
 
 def _effect(rgb):
     return adsk.fusion.CustomGraphicsSolidColorEffect.create(adsk.core.Color.create(rgb[0], rgb[1], rgb[2], 255))
+
+
+def draw_polylines(key, polylines, rgb=(120, 120, 120), weight=1):
+    """Display-only reference geometry. polylines: lists of model-space Point3D."""
+    clear(key)
+    design = _design()
+    if not design or not polylines:
+        return
+    grp = design.rootComponent.customGraphicsGroups.add()
+    _groups[key] = grp
+    for pl in polylines:
+        coords = [v for p in pl for v in (p.x, p.y, p.z)]
+        ln = grp.addLines(adsk.fusion.CustomGraphicsCoordinates.create(coords), [], True, [])
+        ln.color = _effect(rgb)
+        ln.weight = weight
+        try:
+            ln.isSelectable = False
+        except Exception:
+            pass
+    futil.refresh_viewport()
+
+
+def draw_segments(key, coords, rgb=(120, 120, 120), weight=1):
+    """Display-only line segments, all in one call (fast for thousands).
+    coords: flat model-space [x0, y0, z0, x1, y1, z1, ...], two points per segment."""
+    clear(key)
+    design = _design()
+    if not design or not coords:
+        return
+    grp = design.rootComponent.customGraphicsGroups.add()
+    _groups[key] = grp
+    ln = grp.addLines(adsk.fusion.CustomGraphicsCoordinates.create(coords), [], False, [])
+    ln.color = _effect(rgb)
+    ln.weight = weight
+    try:
+        ln.isSelectable = False
+    except Exception:
+        pass
+    futil.refresh_viewport()
 
 
 def sample(curve, density):
@@ -97,4 +137,4 @@ def draw(key, curves, scale=1.0, density=60):
             grp.item(i).isSelectable = False
         except Exception:
             pass
-    app.activeViewport.refresh()
+    futil.refresh_viewport()

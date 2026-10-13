@@ -73,6 +73,19 @@ def set_combed(curve, on):
 
 
 # --------------------------------------------------------------------------- refresh
+def _token(entity):
+    try:
+        return entity.entityToken
+    except Exception:
+        return None
+
+
+def _active_sketch_token():
+    """entityToken of the sketch being edited, or None when no sketch is open."""
+    sk = adsk.fusion.Sketch.cast(app.activeEditObject)
+    return _token(sk) if sk else None
+
+
 def _signature(curves, sets):
     sig = [sets]
     for c in curves:
@@ -95,9 +108,14 @@ def refresh(force=False):
         _last_sig = None
         return
     visible, scale, density = settings()
+    only_editing = get_setting("combOnlyEditing", True)
     curves = combed_curves() if visible else []
     curves = [c for c in curves if c.parentSketch.isVisible]
-    sig = _signature(curves, (visible, scale, density))
+    active = _active_sketch_token()
+    if only_editing:  # like Fusion's own comb: only while that curve's sketch is open for editing
+        curves = [c for c in curves if _token(c.parentSketch) == active]
+    # the active sketch is part of the signature, so entering/finishing a sketch redraws
+    sig = _signature(curves, (visible, scale, density, only_editing, active))
     if not force and sig == _last_sig:
         return
     _last_sig = sig
@@ -105,7 +123,7 @@ def refresh(force=False):
         comb_graphics.draw(KEY, curves, scale, density)
     else:
         comb_graphics.clear(KEY)
-        app.activeViewport.refresh()
+        futil.refresh_viewport()
 
 
 class _Ticker(threading.Thread):
@@ -134,6 +152,8 @@ def _on_created(args):
     for c in combed_curves():
         sel.addSelection(c)
     inputs.addBoolValueInput("visible", "Show combs", True, "", visible)
+    inputs.addBoolValueInput("onlyEditing", "Only while editing the sketch", True, "",
+                             get_setting("combOnlyEditing", True))
     s = inputs.addFloatSliderCommandInput("scale", "Comb scale", "", 0.1, 5.0, False)
     s.valueOne = scale
     d = inputs.addIntegerSliderCommandInput("density", "Comb density", 10, 300, False)
@@ -173,6 +193,7 @@ def _on_execute(args):
     curves, visible, scale, density = _read(args.command.commandInputs)
     futil.debug("comb EXECUTE: %d curve(s), visible=%s scale=%.2f density=%d"
                 % (len(curves), visible, scale, density))
+    set_setting("combOnlyEditing", args.command.commandInputs.itemById("onlyEditing").value)
     keep = set()
     for c in curves:
         set_combed(c, True)
